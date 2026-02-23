@@ -1,0 +1,6 @@
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'repl') THEN
+CREATE ROLE repl WITH REPLICATION LOGIN PASSWORD 'replpass';
+END IF;
+END $$;
