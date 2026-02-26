@@ -1,12 +1,16 @@
 version: "3"
 services:
   php_laravel:
-    build: ./php
+    build:
+      context: .
+      dockerfile: ./php/Dockerfile
     image: php:latest
     container_name: php_laravel
     hostname: "php"
     volumes:
       - ./src:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
       - ./php/www.conf:/usr/local/etc/php-fpm.d/www.conf
     working_dir: /var/www/html
     networks:

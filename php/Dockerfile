@@ -6,82 +6,36 @@ ENV PS1="\u@\h:\w\\$ "
 ENV TZ="Asia/Jakarta"
 
 RUN apt-get update && \
-    apt-get install -y --force-yes --no-install-recommends \
-        libmemcached-dev \
-        libmcrypt-dev \
-        libreadline-dev \
-        libgmp-dev \
-        libzip-dev \
-        libz-dev \
-        libpq-dev \
-        libjpeg-dev \
-        libpng-dev \
-        libfreetype6-dev \
-        libssl-dev \
+    apt-get install -y --no-install-recommends \
         openssh-server \
-        libmagickwand-dev \
         git \
         cron \
-        nano \
-        libxml2-dev
+        nano
 
-# Install soap extension
-RUN docker-php-ext-install soap
-
-# Install exif extension for image manipulation
-RUN docker-php-ext-install exif
-
-# Install the PHP pcntl extension
-RUN docker-php-ext-install pcntl
-
-# Install the PHP intl extension
-RUN docker-php-ext-install intl
-
-# Install the PHP gmp extension
-RUN docker-php-ext-install gmp
-
-# Install the PHP zip extension
-RUN docker-php-ext-install zip
-
-# Install the PHP pdo_mysql extension
-# RUN docker-php-ext-install pdo_mysql
-
-# Install the PHP pdo_pgsql extension
-RUN docker-php-ext-install pdo_pgsql
-
-# Install the PHP bcmath extension
-RUN docker-php-ext-install bcmath
-
-#####################################
-# PHPRedis:
-#####################################
-RUN pecl install redis && docker-php-ext-enable redis
-RUN pecl install mongodb && docker-php-ext-enable mongodb
-
-#####################################
-# Imagick:
-#####################################
+# Install PHP extensions using the helper script
 RUN curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions && \
-    chmod +x /usr/local/bin/install-php-extensions && \
-    install-php-extensions imagick
+    chmod +x /usr/local/bin/install-php-extensions
 
-#####################################
-# GD:
-#####################################
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
-    docker-php-ext-install gd
+# Part 1: Core and common extensions
+RUN install-php-extensions \
+    exif \
+    pcntl \
+    intl \
+    gmp \
+    zip \
+    bcmath \
+    gd
 
-#####################################
-# xDebug:
-#####################################
-# Install the xdebug extension
-RUN pecl install xdebug
-
-#####################################
-# PHP Memcached:
-#####################################
-# Install the php memcached extension
-RUN pecl install memcached && docker-php-ext-enable memcached
+# Part 2: Database, Cache, and specialized extensions (including soap)
+RUN install-php-extensions \
+    soap \
+    pdo_pgsql \
+    pdo_mysql \
+    redis \
+    mongodb \
+    imagick \
+    xdebug \
+    memcached
 
 #####################################
 # Composer:
@@ -94,7 +48,7 @@ RUN curl -s http://getcomposer.org/installer | php && \
 #####################################
 # Node.js & NPM (NodeSource):
 #####################################
-# Kita pakai Node.js v20 (LTS) atau v22 (Current). Di sini saya contohkan v20.
+# Kita pakai Node.js v24 (LTS).
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     apt-get install -y nodejs
 
@@ -113,7 +67,7 @@ RUN chmod 0644 /etc/cron.d/laravel-scheduler
 #--------------------------------------------------------------------------
 #
 
-ADD ./local.ini /usr/local/etc/php/conf.d
+ADD ./php/local.ini /usr/local/etc/php/conf.d
 
 #####################################
 # Aliases:
@@ -139,9 +93,30 @@ RUN chmod +x /usr/bin/d
 
 RUN rm -r /var/lib/apt/lists/*
 
+# Copy existing application directory contents
+COPY ./src /var/www/html
+
+# Set working directory
 WORKDIR /var/www/html
 
-COPY ./docker-entrypoint.sh /usr/local/bin/
+# Environment Setup
+RUN if [ ! -f .env ]; then cp .env.example .env; fi
+
+# Composer install
+RUN composer install --no-interaction --optimize-autoloader
+
+# Generate key
+RUN php artisan key:generate --force
+
+# NPM install and build
+RUN npm install && npm run build
+
+# Set permissions
+RUN chmod -R 775 storage bootstrap/cache && \
+    chown -R www-data:www-data storage bootstrap/cache
+
+COPY ./php/docker-entrypoint.sh /usr/local/bin/
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 RUN ln -s /usr/local/bin/docker-entrypoint.sh /
 

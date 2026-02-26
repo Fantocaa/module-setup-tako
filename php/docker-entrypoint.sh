@@ -56,4 +56,28 @@ elif [ -f /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini ]; then
   rm -rf /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 fi
 
+# ---------------------------------------------------------
+# Laravel Runtime Setup (Only database & links)
+# ---------------------------------------------------------
+
+echo "🚀 Running Laravel Runtime Setup..."
+
+# 3. Laravel Specifics
+echo "🔗 Creating storage link..."
+php artisan storage:link --force
+
+# Note: Environment setup, dependencies and permissions are now handled at build time.
+# If you use volume mounts, remember that they shadow files in the image.
+
+echo "🐘 Running database migrations..."
+php artisan migrate --force
+
+echo "🌱 Seeding database..."
+php artisan db:seed --force
+
+echo "⚡ Optimizing Laravel..."
+php artisan optimize
+
+echo "✅ Runtime Setup Complete!"
+
 exec "$@"
