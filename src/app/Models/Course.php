@@ -88,6 +88,13 @@ class Course extends Model
     {
         return $this->belongsToMany(Position::class, 'course_position');
     }
+    /**
+     * Get the users who have marked this course to watch later.
+     */
+    public function watchLaterUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'watch_later')->withTimestamps();
+    }
 
     /**
      * Get the lesson count attribute.
@@ -110,6 +117,11 @@ class Course extends Model
      */
     protected static function booted(): void
     {
+        static::deleting(function ($course) {
+            // Delete lessons individually to trigger their model events (for file cleanup)
+            $course->lessons->each(fn ($lesson) => $lesson->delete());
+        });
+
         static::saving(function ($course) {
             if (empty($course->slug) || $course->isDirty('title')) {
                 $course->slug = Str::slug($course->title);

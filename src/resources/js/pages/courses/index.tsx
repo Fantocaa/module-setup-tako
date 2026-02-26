@@ -1,8 +1,10 @@
 import AppNavbar from '@/components/app-navbar';
 import { CourseCard } from '@/components/course-card';
+import { Footer } from '@/components/footer';
+import { Pagination } from '@/components/pagination';
 import { Container } from '@/components/ui/container';
 import type { Course, Tag } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
@@ -70,18 +72,18 @@ export default function CoursesIndex({
     }, [searchQuery]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#202020] to-black text-white">
+        <div className="min-h-screen bg-background text-foreground lg:bg-linear-to-b dark:lg:from-[#202020] dark:lg:to-black">
             <Head title="Series" />
             <Container className="py-6 sm:py-12">
                 <AppNavbar />
             </Container>
-            <div className="border-b border-white/5 py-12">
+            <div className="border-b border-border/50 px-4 py-4 lg:px-0 lg:py-12">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="space-y-4">
                         <h1 className="text-3xl font-bold tracking-tight">
                             Series
                         </h1>
-                        <p className="max-w-2xl text-base leading-relaxed text-white/50">
+                        <p className="max-w-2xl text-base leading-relaxed text-muted-fg">
                             Pelajari topik-topik penting dalam pengembangan
                             aplikasi web dan jadilah developer handal di era
                             teknologi modern.
@@ -89,9 +91,9 @@ export default function CoursesIndex({
                     </div>
 
                     {/* Filter Tags */}
-                    <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium">
+                    <div className="mt-8 scrollbar-hide flex flex-nowrap gap-x-6 overflow-x-auto pb-2 text-sm font-medium">
                         <button
-                            className={`transition-colors ${selectedTag === null ? 'text-white' : 'text-white/40 hover:text-white/60'}`}
+                            className={`whitespace-nowrap transition-colors ${selectedTag === null ? 'text-foreground' : 'text-muted-fg hover:text-foreground'}`}
                             onClick={() => handleTagChange(null)}
                         >
                             Semua
@@ -99,10 +101,10 @@ export default function CoursesIndex({
                         {tags.map((tag) => (
                             <button
                                 key={tag.id}
-                                className={`transition-colors ${
+                                className={`whitespace-nowrap transition-colors ${
                                     selectedTag === tag.slug
-                                        ? 'text-white'
-                                        : 'text-white/40 hover:text-white/60'
+                                        ? 'text-foreground'
+                                        : 'text-muted-fg hover:text-foreground'
                                 }`}
                                 onClick={() => handleTagChange(tag.slug)}
                             >
@@ -113,7 +115,7 @@ export default function CoursesIndex({
                 </div>
             </div>
 
-            <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-16">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={`${filters.tag || 'all'}-${filters.search || ''}`}
@@ -131,46 +133,18 @@ export default function CoursesIndex({
 
                         {courses.data.length === 0 && (
                             <div className="py-12 text-center">
-                                <p className="text-white/40">
+                                <p className="text-muted-fg">
                                     Tidak ada course yang ditemukan.
                                 </p>
                             </div>
                         )}
 
-                        {/* Pagination */}
-                        {courses.links && courses.links.length > 3 && (
-                            <div className="mt-12 flex justify-center gap-2">
-                                {courses.links.map(
-                                    (link: any, index: number) => (
-                                        <button
-                                            key={index}
-                                            onClick={() => {
-                                                if (link.url) {
-                                                    router.visit(link.url, {
-                                                        preserveState: true,
-                                                        preserveScroll: false,
-                                                    });
-                                                }
-                                            }}
-                                            disabled={!link.url}
-                                            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                                                link.active
-                                                    ? 'bg-white text-black'
-                                                    : link.url
-                                                      ? 'bg-white/5 hover:bg-white/10'
-                                                      : 'cursor-not-allowed opacity-30'
-                                            }`}
-                                            dangerouslySetInnerHTML={{
-                                                __html: link.label,
-                                            }}
-                                        />
-                                    ),
-                                )}
-                            </div>
-                        )}
+                        <Pagination links={courses.links} className="mt-12" />
                     </motion.div>
                 </AnimatePresence>
             </div>
+
+            <Footer />
         </div>
     );
 }

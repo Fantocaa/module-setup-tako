@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LessonController extends Controller
 {
@@ -27,6 +29,36 @@ class LessonController extends Controller
         return Inertia::render('courses/[slug]/lessons/index', [
             'course' => $course,
             'lessons' => $lessons,
+        ]);
+    }
+    /**
+     * Display a listing of the user's lesson progress (history).
+     */
+    public function history(): Response
+    {
+        $user = auth()->user();
+        
+        $history = LessonProgress::where('user_id', $user->id)
+            ->with(['lesson', 'lesson.course'])
+            ->orderBy('updated_at', 'desc')
+            ->get()
+            ->map(function ($progress) {
+                return [
+                    'id' => $progress->id,
+                    'lesson_id' => $progress->lesson_id,
+                    'lesson_title' => $progress->lesson->title,
+                    'lesson_slug' => $progress->lesson->slug,
+                    'course_title' => $progress->lesson->course->title,
+                    'course_slug' => $progress->lesson->course->slug,
+                    'completed_at' => $progress->completed_at,
+                    'last_position' => $progress->last_position,
+                    'updated_at' => $progress->updated_at,
+                    'duration' => $progress->lesson->duration,
+                ];
+            });
+
+        return Inertia::render('history/index', [
+            'history' => $history,
         ]);
     }
 
@@ -63,6 +95,13 @@ class LessonController extends Controller
             $validated['video_url'] = null; // Clear URL if file is uploaded
         }
 
+        // Handle PDF Upload
+        if ($request->hasFile('pdf_file')) {
+            $path = $request->file('pdf_file')->store('course/lessons', 'public');
+            $validated['pdf_path'] = $path;
+        }
+
+
         $lesson = Lesson::create($validated);
 
         return redirect()->route('courses.edit', $course)
@@ -72,11 +111,21 @@ class LessonController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Course $course, Lesson $lesson): Response
+    public function show(Course $course, string $lessonSlug): Response
     {
         $lessons = Cache::tags(['courses'])->remember("course_lessons_published:{$course->id}", now()->addHours(24), function () use ($course) {
             return $course->lessons()->where('is_published', true)->orderBy('order')->get();
         });
+
+        // Find lesson by slug (title converted to slug)
+        // We support both ID and slug for backwards compatibility or internal links
+        $lesson = $lessons->first(function ($l) use ($lessonSlug) {
+            return $l->slug === $lessonSlug || (is_numeric($lessonSlug) && $l->id == $lessonSlug);
+        });
+
+        if (!$lesson) {
+            abort(404);
+        }
 
         $currentIndex = $lessons->search(fn($l) => $l->id === $lesson->id);
         
@@ -84,7 +133,7 @@ class LessonController extends Controller
         $nextLesson = $currentIndex < $lessons->count() - 1 ? $lessons[$currentIndex + 1] : null;
 
         // Fetch user progress for all lessons in this course
-        $userProgress = \App\Models\LessonProgress::where('user_id', auth()->id())
+        $userProgress = LessonProgress::where('user_id', auth()->id())
             ->whereIn('lesson_id', $lessons->pluck('id'))
             ->get()
             ->keyBy('lesson_id');
@@ -126,8 +175,8 @@ class LessonController extends Controller
         // Handle File Upload
         if ($request->hasFile('video_file')) {
             // Delete old file if exists
-            if ($lesson->video_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($lesson->video_path)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($lesson->video_path);
+            if ($lesson->video_path && Storage::disk('public')->exists($lesson->video_path)) {
+                Storage::disk('public')->delete($lesson->video_path);
             }
             
             $path = $request->file('video_file')->store('course/lessons', 'public');
@@ -136,10 +185,21 @@ class LessonController extends Controller
         } elseif (isset($validated['video_url']) && $validated['video_url']) {
              // User provided a URL, meaning they might have switched from File to URL.
              // We should delete existing file if it exists.
-             if ($lesson->video_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($lesson->video_path)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($lesson->video_path);
+             if ($lesson->video_path && Storage::disk('public')->exists($lesson->video_path)) {
+                Storage::disk('public')->delete($lesson->video_path);
             }
             $validated['video_path'] = null;
+        }
+
+        // Handle PDF Upload
+        if ($request->hasFile('pdf_file')) {
+            // Delete old file if exists
+            if ($lesson->pdf_path && Storage::disk('public')->exists($lesson->pdf_path)) {
+                Storage::disk('public')->delete($lesson->pdf_path);
+            }
+            
+            $path = $request->file('pdf_file')->store('course/lessons', 'public');
+            $validated['pdf_path'] = $path;
         }
 
         $lesson->update($validated);
@@ -184,9 +244,16 @@ class LessonController extends Controller
         return redirect()->back()->with('success', 'Lesson order updated successfully.');
     }
 
-    public function updateProgress(UpdateLessonProgressRequest $request,Lesson $lesson)
+    public function updateProgress(UpdateLessonProgressRequest $request, string $lessonSlug)
     {
         $user = auth()->user();
+        
+        // Find lesson by slug or ID
+        $lesson = Lesson::all()->first(function($l) use ($lessonSlug) {
+            return $l->slug === $lessonSlug || (is_numeric($lessonSlug) && $l->id == $lessonSlug);
+        });
+
+        if (!$lesson) abort(404);
 
         $progress = LessonProgress::updateOrCreate(
             ['user_id' => $user->id, 'lesson_id' => $lesson->id],
@@ -201,4 +268,33 @@ class LessonController extends Controller
             'progress' => $progress,
         ]);
     }
+
+    /**
+     * Stream a PDF file securely as base64 to avoid extension interception (IDM).
+     */
+    public function streamPdf(string $lessonSlug): \Illuminate\Http\JsonResponse
+    {
+        // Find lesson by slug or ID
+        $lesson = Lesson::all()->first(function($l) use ($lessonSlug) {
+            return $l->slug === $lessonSlug || (is_numeric($lessonSlug) && $l->id == $lessonSlug);
+        });
+
+        if (!$lesson || $lesson->content_type !== 'pdf' || !$lesson->pdf_path) {
+            abort(404);
+        }
+
+        if (!Storage::disk('public')->exists($lesson->pdf_path)) {
+            abort(404);
+        }
+
+        $fileContent = Storage::disk('public')->get($lesson->pdf_path);
+        $base64 = base64_encode($fileContent);
+
+        return response()->json([
+            'data' => $base64,
+            'mime' => 'application/pdf',
+            'name' => basename($lesson->pdf_path)
+        ]);
+    }
+
 }

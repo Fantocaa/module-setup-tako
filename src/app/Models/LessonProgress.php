@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LessonProgress extends Model
 {
@@ -28,7 +29,7 @@ class LessonProgress extends Model
     /**
      * Get the user that owns the progress.
      */
-    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
@@ -36,7 +37,7 @@ class LessonProgress extends Model
     /**
      * Get the lesson that the progress belongs to.
      */
-    public function lesson(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function lesson(): BelongsTo
     {
         return $this->belongsTo(Lesson::class);
     }

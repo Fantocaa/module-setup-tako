@@ -23,7 +23,7 @@ class StoreLessonRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'max:255'],
-            'content_type' => ['required', 'in:video,article'],
+            'content_type' => ['required', 'in:video,article,pdf'],
             'video_url' => ['nullable', 'string', 'max:500', 'required_without:video_file'], // Rule is complicated because of existing file case? 
             // Actually for Store: required_without:video_file if content_type is video.
             // But 'required_if' only checks one field.
@@ -34,6 +34,7 @@ class StoreLessonRequest extends FormRequest
             // Correct logic:
             'video_url' => ['nullable', 'string', 'url', 'max:500'],
             'video_file' => ['nullable', 'file', 'mimes:mp4,webm', 'max:102400'], // 100MB
+            'pdf_file' => ['nullable', 'file', 'mimes:pdf', 'max:10240'], // 10MB
             'content' => ['required_if:content_type,article', 'nullable', 'string'],
             'duration' => ['nullable', 'integer', 'min:0'],
             'order' => ['nullable', 'integer', 'min:0'],

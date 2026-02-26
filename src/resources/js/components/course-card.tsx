@@ -23,16 +23,17 @@ export function CourseCard({ course }: CourseCardProps) {
 
     return (
         <Link href={`/courses/${course.slug}`}>
-            <Card className="group flex h-full flex-col overflow-hidden border-none bg-[#1a1a1a] py-0 transition-all hover:bg-[#222222]">
+            <Card className="group relative flex h-full flex-col overflow-hidden border-none bg-card py-0 transition-all hover:bg-accent/50 dark:bg-[#1a1a1a] dark:hover:bg-[#222222]">
+                <div className="absolute top-1/2 left-0 h-8 w-1 -translate-y-1/2 rounded-r-full bg-muted-foreground/20 transition-all duration-300 group-hover:h-16 group-hover:bg-primary" />
                 <CardHeader className="relative space-y-2 py-6 pl-8">
-                    <CardTitle className="line-clamp-2 text-lg font-bold text-white group-hover:text-primary">
+                    <CardTitle className="line-clamp-2 text-lg font-bold text-card-foreground group-hover:text-primary">
                         {course.title}
                     </CardTitle>
-                    <CardDescription className="line-clamp-2 text-sm text-white/50">
+                    <CardDescription className="line-clamp-2 text-sm text-muted-foreground">
                         {course.description}
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="mt-auto px-8 text-xs font-medium text-white/40">
+                <CardContent className="mt-auto px-8 text-xs font-medium text-muted-foreground/80">
                     <div className="flex items-center gap-4">
                         <span>{formatDuration(course.total_duration)}</span>
                         <span>{course.lesson_count || 0} episode</span>
@@ -43,12 +44,12 @@ export function CourseCard({ course }: CourseCardProps) {
                         {course.tags?.map((tag) => (
                             <Badge
                                 key={tag.id}
-                                className="text-[10px] font-bold tracking-wider"
+                                className="border-none text-[10px] font-bold tracking-wider"
                                 style={{
-                                    color: tag.color || '#ffffff',
+                                    color: tag.color || 'currentColor',
                                     backgroundColor: tag.color
-                                        ? `color-mix(in srgb, ${tag.color}, transparent 80%)`
-                                        : 'rgba(255,255,255,0.1)',
+                                        ? `color-mix(in srgb, ${tag.color}, transparent 85%)`
+                                        : 'rgba(120,120,120,0.1)',
                                 }}
                             >
                                 {tag.name}

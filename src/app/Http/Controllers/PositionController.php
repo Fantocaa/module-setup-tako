@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Models\Position;
+use App\Models\Tag;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -16,10 +17,12 @@ class PositionController extends Controller
     {
         $positions = Position::with('courses')->withCount('users')->get();
         $courses = Course::orderBy('title')->get(['id', 'title']);
+        $tags = Tag::with('courses:id')->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('positions/Index', [
             'positions' => $positions,
             'courses' => $courses,
+            'tags' => $tags,
         ]);
     }
 

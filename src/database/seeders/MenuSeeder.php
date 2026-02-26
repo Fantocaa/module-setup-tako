@@ -54,6 +54,15 @@ class MenuSeeder extends Seeder
             'parent_id' => $access->id,
         ]);
 
+        Menu::create([
+            'title' => 'Positions',
+            'icon' => 'AlertTriangle',
+            'route' => '/positions',
+            'order' => 5,
+            'permission_name' => 'positions-view',
+            'parent_id' => $access->id,
+        ]);
+
         // GROUP: Settings
         $settings = Menu::create([
             'title' => 'Settings',

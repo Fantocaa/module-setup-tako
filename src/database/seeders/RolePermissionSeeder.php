@@ -24,6 +24,7 @@ class RolePermissionSeeder extends Seeder
                 'permission-view',
                 'users-view',
                 'roles-view',
+                'positions-view',
             ],
             'Settings' => [
                 'settings-view',
@@ -41,7 +42,6 @@ class RolePermissionSeeder extends Seeder
                 'course-view',
                 'lesson-view',
                 'tag-view',
-                'position-view',
             ],
         ];
 

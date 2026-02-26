@@ -16,3 +16,14 @@ export function isSameUrl(
 export function resolveUrl(url: NonNullable<InertiaLinkProps['href']>): string {
     return typeof url === 'string' ? url : url.url;
 }
+
+export function formatDuration(
+    seconds: number | null,
+    contentType?: 'video' | 'pdf' | 'article',
+) {
+    if (contentType && contentType !== 'video') return 'Self-paced';
+    if (!seconds) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}

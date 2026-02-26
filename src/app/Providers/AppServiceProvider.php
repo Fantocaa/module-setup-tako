@@ -9,6 +9,8 @@ use App\Models\User;
 use Spatie\Permission\Models\Role;
 use App\Observers\GlobalActivityLogger;
 use Spatie\Permission\Models\Permission;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+use App\Http\Responses\LoginResponse;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -17,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(LoginResponseContract::class, LoginResponse::class);
     }
 
     /**

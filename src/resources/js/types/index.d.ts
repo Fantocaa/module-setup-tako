@@ -95,9 +95,11 @@ export interface Lesson {
     id: number;
     course_id: number;
     title: string;
-    content_type: 'video' | 'article';
+    slug: string;
+    content_type: 'video' | 'article' | 'pdf';
     video_url: string | null;
     video_path: string | null;
+    pdf_path: string | null;
     content: string | null;
     duration: number | null;
     order: number;

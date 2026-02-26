@@ -25,11 +25,29 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
+interface PsychotestQuestion {
+    id: number;
+    test_type: string;
+    session_number: number;
+    section_number: number | null;
+    question_number: number;
+    type: string;
+    content: any;
+    options: any;
+    correct_answer?: string[];
+}
+
 interface QuestionFormProps {
-    question?: any;
+    question?: PsychotestQuestion;
     mode: 'create' | 'edit';
-    onSuccess?: () => void;
-    onCancel?: () => void;
+    sections: {
+        id: number;
+        test_type: string;
+        section_number: number;
+        duration: number;
+    }[];
+    onSuccess: () => void;
+    onCancel: () => void;
 }
 
 interface FormState {
@@ -37,7 +55,6 @@ interface FormState {
     skill_category: string;
     session_number: number | string;
     section_number: number | string;
-    section_duration: number | string;
     question_number: number | string;
     type: string;
     content_text: string;
@@ -51,6 +68,7 @@ interface FormState {
 export default function QuestionForm({
     question,
     mode,
+    sections,
     onSuccess,
     onCancel,
 }: QuestionFormProps) {
@@ -60,9 +78,6 @@ export default function QuestionForm({
             skill_category: question?.content?.skill_category || '',
             session_number: question?.session_number || 1,
             section_number: question?.section_number || '',
-            section_duration: question?.section_duration
-                ? Math.floor(question.section_duration / 60)
-                : '',
             question_number: question?.question_number || '',
             type: question?.type || 'disc',
             // Content helpers
@@ -82,6 +97,17 @@ export default function QuestionForm({
             correct_answer: question?.correct_answer || [],
         });
 
+    // Filter sections based on selected test type
+    const availableSections = sections.filter(
+        (s) => s.test_type === data.test_type,
+    );
+
+    // Get current section duration for display
+    const currentSectionDuration = availableSections.find(
+        (s) => s.section_number === parseInt(data.section_number as string),
+    )?.duration;
+
+    const isUpdate = mode === 'edit';
     // Auto-set session number and type based on test type
     useEffect(() => {
         if (data.test_type === 'papicostic') {
@@ -186,7 +212,7 @@ export default function QuestionForm({
 
         const isUpdate = mode === 'edit';
         const url = isUpdate
-            ? `/psychotest-questions/${question.id}`
+            ? `/psychotest-questions/${question?.id}`
             : '/psychotest-questions';
 
         // We use transform to prepare the payload before Inertia sends it
@@ -195,9 +221,6 @@ export default function QuestionForm({
             _method: isUpdate ? 'PUT' : 'POST',
             section_number: data.section_number
                 ? parseInt(data.section_number as string)
-                : null,
-            section_duration: data.section_duration
-                ? parseInt(data.section_duration as string) * 60
                 : null,
             content:
                 data.test_type === 'skill_test'
@@ -314,41 +337,69 @@ export default function QuestionForm({
                             Subtest Number
                         </Label>
                         <div className="relative">
-                            <Input
-                                type="number"
-                                placeholder="e.g 1"
-                                value={data.section_number}
-                                onChange={(e) =>
-                                    setData('section_number', e.target.value)
-                                }
-                                className="h-11 border-border bg-background pl-10 transition-colors focus:ring-ring"
-                            />
+                            {availableSections.length > 0 ? (
+                                <Select
+                                    value={data.section_number.toString()}
+                                    onValueChange={(val) =>
+                                        setData('section_number', val)
+                                    }
+                                >
+                                    <SelectTrigger className="h-11 border-border bg-background pl-10 transition-colors focus:ring-ring">
+                                        <SelectValue placeholder="Select subtest" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableSections.map((s) => (
+                                            <SelectItem
+                                                key={s.id}
+                                                value={s.section_number.toString()}
+                                            >
+                                                Subtest {s.section_number}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <Input
+                                    type="number"
+                                    placeholder="e.g 1"
+                                    value={data.section_number}
+                                    onChange={(e) =>
+                                        setData(
+                                            'section_number',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-11 border-border bg-background pl-10 transition-colors focus:ring-ring"
+                                />
+                            )}
                             <Layers className="absolute top-3 left-3 h-5 w-5 text-muted-foreground" />
                         </div>
                     </div>
 
                     <div className="space-y-2">
                         <Label className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                            Subtest Duration
+                            Inherited Duration
                         </Label>
-                        <div className="relative">
-                            <Input
-                                type="number"
-                                placeholder="e.g 3"
-                                value={data.section_duration}
-                                onChange={(e) =>
-                                    setData('section_duration', e.target.value)
-                                }
-                                className="h-11 border-border bg-background pr-12 pl-10 transition-colors focus:ring-ring"
+                        <div
+                            className={`flex h-11 items-center gap-2 rounded-lg border px-3 text-sm transition-colors ${
+                                currentSectionDuration
+                                    ? 'border-blue-200 bg-blue-50/50 text-blue-700'
+                                    : 'border-border bg-muted/20 text-muted-foreground'
+                            }`}
+                        >
+                            <Timer
+                                className={`h-4 w-4 ${currentSectionDuration ? 'text-blue-500' : ''}`}
                             />
-                            <Timer className="absolute top-3 left-3 h-5 w-5 text-muted-foreground" />
-                            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-medium text-muted-foreground">
-                                min
-                            </div>
+                            <span>
+                                {currentSectionDuration
+                                    ? `${currentSectionDuration} Seconds`
+                                    : 'Managed in Subtest Settings'}
+                            </span>
                         </div>
                         <p className="text-[10px] text-muted-foreground">
-                            * Applies to all questions in section{' '}
-                            {data.section_number || '#'}
+                            {currentSectionDuration
+                                ? `* This subtest has a ${currentSectionDuration}s limit.`
+                                : '* No duration set for this subtest yet.'}
                         </p>
                     </div>
                 </div>
@@ -442,162 +493,182 @@ export default function QuestionForm({
             </div>
 
             {/* Section 3: Question Content */}
-            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:shadow-md">
-                <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-6 py-4">
-                    <div className="rounded-lg bg-blue-500/10 p-2 text-blue-500">
-                        <FileText className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-foreground">
-                            Question Content
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                            Input the text or comparison data for this question.
-                        </p>
-                    </div>
-                </div>
-
-                <div className="p-6">
-                    {/* Skill Category (Conditionally rendered) */}
-                    {data.test_type === 'skill_test' && (
-                        <div className="mb-6 space-y-2">
-                            <Label
-                                htmlFor="skill_category"
-                                className="text-xs font-semibold text-muted-foreground uppercase"
-                            >
-                                Skill Category
-                            </Label>
-                            <Input
-                                id="skill_category"
-                                value={data.skill_category}
-                                onChange={(e) =>
-                                    setData('skill_category', e.target.value)
-                                }
-                                placeholder="e.g. Accounting, Document, etc."
-                                className="h-11 border-border bg-background focus:ring-ring"
-                            />
-                            {errors.skill_category && (
-                                <p className="text-sm text-destructive">
-                                    {errors.skill_category}
-                                </p>
-                            )}
+            {data.test_type !== 'papicostic' && (
+                <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:shadow-md">
+                    <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-6 py-4">
+                        <div className="rounded-lg bg-blue-500/10 p-2 text-blue-500">
+                            <FileText className="h-5 w-5" />
                         </div>
-                    )}
+                        <div>
+                            <h3 className="text-lg font-bold text-foreground">
+                                Question Content
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                                Input the text or comparison data for this
+                                question.
+                            </p>
+                        </div>
+                    </div>
 
-                    {data.type === 'comparison' ? (
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label className="text-xs font-semibold text-muted-foreground">
-                                    Left Content
+                    <div className="p-6">
+                        {/* Skill Category (Conditionally rendered) */}
+                        {data.test_type === 'skill_test' && (
+                            <div className="mb-6 space-y-2">
+                                <Label
+                                    htmlFor="skill_category"
+                                    className="text-xs font-semibold text-muted-foreground uppercase"
+                                >
+                                    Skill Category
                                 </Label>
                                 <Input
-                                    value={data.content_text}
+                                    id="skill_category"
+                                    value={data.skill_category}
                                     onChange={(e) =>
-                                        setData('content_text', e.target.value)
+                                        setData(
+                                            'skill_category',
+                                            e.target.value,
+                                        )
                                     }
+                                    placeholder="e.g. Accounting, Document, etc."
                                     className="h-11 border-border bg-background focus:ring-ring"
-                                    placeholder="e.g. Text content"
                                 />
+                                {errors.skill_category && (
+                                    <p className="text-sm text-destructive">
+                                        {errors.skill_category}
+                                    </p>
+                                )}
                             </div>
-                            <div className="space-y-2">
-                                <Label className="text-xs font-semibold text-muted-foreground">
-                                    Right Content
-                                </Label>
-                                <Input
-                                    value={data.content_text2}
-                                    onChange={(e) =>
-                                        setData('content_text2', e.target.value)
-                                    }
-                                    className="h-11 border-border bg-background focus:ring-ring"
-                                    placeholder="e.g. Text content"
-                                />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label className="text-xs font-semibold text-muted-foreground">
-                                    {data.type === 'disc'
-                                        ? 'Optional Header Text'
-                                        : 'Question Prompt / Instructions'}
-                                </Label>
-                                <Textarea
-                                    placeholder={
-                                        data.type === 'disc'
-                                            ? 'e.g. Choose one most and one least...'
-                                            : 'e.g. Silakan download file di bawah ini dan kerjakan...'
-                                    }
-                                    value={data.content_text}
-                                    onChange={(e) =>
-                                        setData('content_text', e.target.value)
-                                    }
-                                    className="min-h-[100px] border-border bg-background focus:ring-ring"
-                                />
-                            </div>
+                        )}
 
-                            {data.type === 'file_assignment' && (
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label
-                                            htmlFor="template_file"
-                                            className="text-xs font-semibold text-muted-foreground uppercase"
-                                        >
-                                            {question?.content?.file_path
-                                                ? 'Change Template File'
-                                                : 'Upload Template File'}
-                                        </Label>
-                                        <div className="flex flex-col gap-2">
+                        {data.type === 'comparison' ? (
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-semibold text-muted-foreground">
+                                        Left Content
+                                    </Label>
+                                    <Input
+                                        value={data.content_text}
+                                        onChange={(e) =>
+                                            setData(
+                                                'content_text',
+                                                e.target.value,
+                                            )
+                                        }
+                                        className="h-11 border-border bg-background focus:ring-ring"
+                                        placeholder="e.g. Text content"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-semibold text-muted-foreground">
+                                        Right Content
+                                    </Label>
+                                    <Input
+                                        value={data.content_text2}
+                                        onChange={(e) =>
+                                            setData(
+                                                'content_text2',
+                                                e.target.value,
+                                            )
+                                        }
+                                        className="h-11 border-border bg-background focus:ring-ring"
+                                        placeholder="e.g. Text content"
+                                    />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-semibold text-muted-foreground">
+                                        {data.type === 'disc'
+                                            ? 'Optional Header Text'
+                                            : 'Question Prompt / Instructions'}
+                                    </Label>
+                                    <Textarea
+                                        placeholder={
+                                            data.type === 'disc'
+                                                ? 'e.g. Choose one most and one least...'
+                                                : 'e.g. Silakan download file di bawah ini dan kerjakan...'
+                                        }
+                                        value={data.content_text}
+                                        onChange={(e) =>
+                                            setData(
+                                                'content_text',
+                                                e.target.value,
+                                            )
+                                        }
+                                        className="min-h-[100px] border-border bg-background focus:ring-ring"
+                                    />
+                                </div>
+
+                                {data.type === 'file_assignment' && (
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label
+                                                htmlFor="template_file"
+                                                className="text-xs font-semibold text-muted-foreground uppercase"
+                                            >
+                                                {question?.content?.file_path
+                                                    ? 'Change Template File'
+                                                    : 'Upload Template File'}
+                                            </Label>
+                                            <div className="flex flex-col gap-2">
+                                                <Input
+                                                    id="template_file"
+                                                    type="file"
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'template_file',
+                                                            e.target
+                                                                .files?.[0] ||
+                                                                null,
+                                                        )
+                                                    }
+                                                    className="h-11 border-border bg-background pt-2 focus:ring-ring"
+                                                />
+                                                {question?.content
+                                                    ?.file_path && (
+                                                    <p className="text-[10px] font-bold text-blue-600">
+                                                        Current file:{' '}
+                                                        {
+                                                            question.content
+                                                                .file_path
+                                                        }
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground">
+                                                Upload Word/Excel template for
+                                                candidate download.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label
+                                                htmlFor="content_file_url_legacy"
+                                                className="text-xs font-semibold text-muted-foreground uppercase"
+                                            >
+                                                Or Template URL (Optional)
+                                            </Label>
                                             <Input
-                                                id="template_file"
-                                                type="file"
+                                                id="content_file_url_legacy"
+                                                value={data.content_file_url}
                                                 onChange={(e) =>
                                                     setData(
-                                                        'template_file',
-                                                        e.target.files?.[0] ||
-                                                            null,
+                                                        'content_file_url',
+                                                        e.target.value,
                                                     )
                                                 }
-                                                className="h-11 border-border bg-background pt-2 focus:ring-ring"
+                                                placeholder="https://example.com/file.xlsx"
+                                                className="h-11 border-border bg-background focus:ring-ring"
                                             />
-                                            {question?.content?.file_path && (
-                                                <p className="text-[10px] font-bold text-blue-600">
-                                                    Current file:{' '}
-                                                    {question.content.file_path}
-                                                </p>
-                                            )}
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground">
-                                            Upload Word/Excel template for
-                                            candidate download.
-                                        </p>
                                     </div>
-
-                                    <div className="space-y-2">
-                                        <Label
-                                            htmlFor="content_file_url_legacy"
-                                            className="text-xs font-semibold text-muted-foreground uppercase"
-                                        >
-                                            Or Template URL (Optional)
-                                        </Label>
-                                        <Input
-                                            id="content_file_url_legacy"
-                                            value={data.content_file_url}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'content_file_url',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="https://example.com/file.xlsx"
-                                            className="h-11 border-border bg-background focus:ring-ring"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Section 4: Response Options */}
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:shadow-md">

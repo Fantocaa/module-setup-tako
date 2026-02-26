@@ -11,17 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('lessons', function (Blueprint $table) {
+        Schema::create('watch_later', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
-            $table->string('title');
-            $table->enum('content_type', ['video', 'article']);
-            $table->string('video_url')->nullable();
-            $table->longText('content')->nullable();
-            $table->unsignedInteger('duration')->nullable();
-            $table->unsignedInteger('order')->default(0);
-
             $table->timestamps();
+            
+            $table->unique(['user_id', 'course_id']);
         });
     }
 
@@ -30,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('lessons');
+        Schema::dropIfExists('watch_later');
     }
 };

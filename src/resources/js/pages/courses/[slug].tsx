@@ -1,51 +1,50 @@
 import AppNavbar from '@/components/app-navbar';
+import { Footer } from '@/components/footer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
-import type { Course } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
+import { formatDuration } from '@/lib/utils';
+import type { Course, Lesson } from '@/types';
+import { Head, router } from '@inertiajs/react';
 import { Clock, PlayCircle } from 'lucide-react';
 
-interface CourseShowProps {
+interface CourseDetailProps {
     course: Course;
+    lessons: (Lesson & { completed_at: string | null })[];
+    isWatchLater: boolean;
 }
 
-function formatDuration(seconds: number | null) {
-    if (!seconds) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-export default function CourseShow({ course }: CourseShowProps) {
-    const { auth } = usePage().props as any;
-    const lessons = course.lessons || [];
-    // const isOwner = auth?.user?.id === course.instructor?.id;
-
-    // const handleDelete = () => {
-    //     if (
-    //         confirm(
-    //             'Are you sure you want to delete this course? This action cannot be undone.',
-    //         )
-    //     ) {
-    //         router.delete(`/courses/${course.slug}`);
-    //     }
-    // };
+export default function CourseDetail({
+    course,
+    lessons: incomingLessons,
+    isWatchLater,
+}: CourseDetailProps) {
+    const lessons = incomingLessons || course.lessons || [];
 
     const handleStartLearning = () => {
         if (lessons.length > 0) {
-            router.visit(`/courses/${course.slug}/lessons/${lessons[0].id}`);
+            router.visit(`/courses/${course.slug}/lessons/${lessons[0].slug}`);
         }
     };
 
+    const handleToggleWatchLater = () => {
+        router.post(
+            `/courses/${course.id}/watch-later`,
+            {},
+            {
+                preserveScroll: true,
+            },
+        );
+    };
+
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#202020] to-black text-white">
+        <div className="min-h-screen bg-background text-foreground lg:bg-linear-to-b dark:lg:from-[#202020] dark:lg:to-[#0a0a0a]">
             <Head title={course.title} />
             <Container className="py-6 sm:py-12">
                 <AppNavbar />
             </Container>
 
-            <div className="py-20">
+            <div className="py-6 lg:py-20">
                 <div className="mx-auto max-w-3xl px-4 text-center">
                     <div className="mb-6 flex justify-center gap-2">
                         {course.tags?.map((tag) => (
@@ -63,17 +62,17 @@ export default function CourseShow({ course }: CourseShowProps) {
                             </Badge>
                         ))}
                     </div>
-                    <h1 className="mb-6 text-5xl leading-tight font-bold text-white">
+                    <h1 className="mb-6 text-4xl leading-tight font-bold lg:text-5xl">
                         {course.title}
                     </h1>
-                    <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-white/60">
+                    <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-muted-fg">
                         {course.description}
                     </p>
 
                     <div className="flex flex-wrap justify-center gap-4">
                         {lessons.length > 0 && (
                             <Button
-                                className="rounded-lg px-8 py-6"
+                                className="rounded-xl px-8 py-6 font-bold"
                                 onClick={handleStartLearning}
                             >
                                 <PlayCircle className="mr-2 h-5 w-5" />
@@ -81,20 +80,23 @@ export default function CourseShow({ course }: CourseShowProps) {
                             </Button>
                         )}
                         <Button
-                            variant="outline"
-                            className="rounded-lg border-white/10 px-4 py-6 font-medium hover:bg-white/10"
+                            variant={isWatchLater ? 'secondary' : 'outline'}
+                            className="rounded-xl border-border px-8 py-6 font-bold hover:bg-accent"
+                            onClick={handleToggleWatchLater}
                         >
                             <Clock className="mr-2 h-5 w-5" />
-                            Tonton Nanti
+                            {isWatchLater
+                                ? 'Batal Tonton Nanti'
+                                : 'Tonton Nanti'}
                         </Button>
                     </div>
                 </div>
             </div>
 
             <div className="mx-auto max-w-5xl px-4 pb-24">
-                <div className="border-t border-white/5 pt-16">
-                    <h2 className="mb-10 text-center text-xl font-bold text-white/90">
-                        {lessons.length} episodes siap untuk dipelajari.
+                <div className="border-t border-border px-4 pt-16 lg:px-0">
+                    <h2 className="mb-10 text-center text-xl font-bold text-foreground/80">
+                        {lessons.length} episode siap untuk dipelajari.
                     </h2>
 
                     {lessons.length > 0 ? (
@@ -104,32 +106,57 @@ export default function CourseShow({ course }: CourseShowProps) {
                                     key={lesson.id}
                                     onClick={() =>
                                         router.visit(
-                                            `/courses/${course.slug}/lessons/${lesson.id}`,
+                                            `/courses/${course.slug}/lessons/${lesson.slug}`,
                                         )
                                     }
-                                    className="group flex w-full cursor-pointer items-center justify-between border-b border-dashed border-white/[0.25] py-5 text-left transition-all hover:text-white"
+                                    className="group flex w-full cursor-pointer items-center justify-between border-b border-dashed border-border/50 py-5 text-left transition-all"
                                 >
-                                    <div className="flex items-center gap-6">
-                                        <span className="text-sm font-medium text-white/30">
+                                    <div className="flex items-center gap-2 lg:gap-6">
+                                        <span className="text-sm font-medium text-muted-fg/40">
                                             {index + 1}.
                                         </span>
-                                        <h3 className="text-base font-medium text-white/80 group-hover:text-white">
+                                        <h3
+                                            className={`text-base font-medium transition-colors ${
+                                                lesson.completed_at
+                                                    ? 'text-emerald-500'
+                                                    : 'text-foreground/80 group-hover:text-primary'
+                                            }`}
+                                        >
                                             {lesson.title}
+                                            {lesson.completed_at && (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="ml-3 bg-emerald-500/10 text-[10px] font-bold text-emerald-500"
+                                                >
+                                                    Selesai
+                                                </Badge>
+                                            )}
                                         </h3>
                                     </div>
-                                    <span className="text-sm text-white/30">
-                                        {formatDuration(lesson.duration)}
+                                    <span
+                                        className={`text-sm ${
+                                            lesson.completed_at
+                                                ? 'text-emerald-500/60'
+                                                : 'text-muted-fg/40'
+                                        }`}
+                                    >
+                                        {formatDuration(
+                                            lesson.duration,
+                                            lesson.content_type,
+                                        )}
                                     </span>
                                 </button>
                             ))}
                         </div>
                     ) : (
-                        <div className="py-12 text-center text-white/40">
+                        <div className="py-12 text-center text-muted-fg/40">
                             Belum ada lesson untuk course ini.
                         </div>
                     )}
                 </div>
             </div>
+
+            <Footer />
         </div>
     );
 }

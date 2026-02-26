@@ -11,9 +11,9 @@ import type { SharedData } from '@/types';
 import {
     ArrowRightOnRectangleIcon,
     Cog6ToothIcon,
-    Squares2X2Icon,
 } from '@heroicons/react/24/outline';
 import { router, usePage } from '@inertiajs/react';
+import { Clock, History } from 'lucide-react';
 
 export function UserMenu() {
     const { auth } = usePage<SharedData>().props;
@@ -46,18 +46,26 @@ export function UserMenu() {
                     </span>
                 </MenuHeader>
 
-                <MenuItem href="/dashboard">
+                {/* <MenuItem href="/dashboard">
                     <Squares2X2Icon />
                     Dashboard
+                </MenuItem> */}
+                <MenuItem href="/history">
+                    <History data-slot="icon" />
+                    History
+                </MenuItem>
+                <MenuItem href="/watch-later">
+                    <Clock data-slot="icon" />
+                    Tonton Nanti
                 </MenuItem>
                 <MenuItem href="/profile">
-                    <Cog6ToothIcon />
+                    <Cog6ToothIcon data-slot="icon" />
                     Settings
                 </MenuItem>
 
                 <MenuSeparator />
                 <MenuItem onAction={handleLogout}>
-                    <ArrowRightOnRectangleIcon />
+                    <ArrowRightOnRectangleIcon data-slot="icon" />
                     Log out
                 </MenuItem>
             </MenuContent>

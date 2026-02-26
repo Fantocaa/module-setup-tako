@@ -8,7 +8,7 @@ interface CreateCourseProps {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Courses', href: '/courses' },
+    { title: 'Courses', href: '/courses-index' },
     { title: 'Create', href: '/courses/create' },
 ];
 

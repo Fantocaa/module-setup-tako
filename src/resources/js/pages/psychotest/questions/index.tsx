@@ -17,11 +17,21 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/app-layout';
+import psychotestQuestions from '@/routes/psychotest-questions';
+import psychotestSections from '@/routes/psychotest-sections';
 import { BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -33,7 +43,7 @@ import {
     SortingState,
     useReactTable,
 } from '@tanstack/react-table';
-import { Edit, MoreHorizontal, Plus, Search, Trash } from 'lucide-react';
+import { Clock, Edit, MoreHorizontal, Plus, Search, Trash } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import QuestionForm from './form';
@@ -49,26 +59,59 @@ interface PsychotestQuestion {
     options: any;
 }
 
+interface PsychotestSection {
+    id: number;
+    test_type: string;
+    session_number: number;
+    section_number: number;
+    name: string | null;
+    duration: number;
+}
+
 interface Props {
     questions: PsychotestQuestion[];
+    sections: PsychotestSection[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Psychotest Questions',
-        href: '/psychotest-questions',
+        href: psychotestQuestions.index().url,
     },
 ];
 
-// --- Columns were moved into the component to access state ---
-
-export default function QuestionsIndex({ questions }: Props) {
+export default function QuestionsIndex({ questions, sections }: Props) {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [sorting, setSorting] = useState<SortingState>([]);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isSectionsOpen, setIsSectionsOpen] = useState(false);
     const [editingQuestion, setEditingQuestion] =
         useState<PsychotestQuestion | null>(null);
+
+    const {
+        data: sectionData,
+        setData: setSectionData,
+        post: postSection,
+        processing: processingSection,
+        reset: resetSection,
+    } = useForm({
+        test_type: 'disc',
+        session_number: 1,
+        section_number: 1,
+        duration: 600,
+        name: '',
+    });
+
+    const handleSectionSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        postSection(psychotestSections.store().url, {
+            onSuccess: () => {
+                toast.success('Section updated');
+                resetSection();
+            },
+        });
+    };
 
     const columns: ColumnDef<PsychotestQuestion>[] = [
         {
@@ -84,6 +127,11 @@ export default function QuestionsIndex({ questions }: Props) {
             accessorKey: 'session_number',
             header: 'Session',
             cell: ({ row }) => row.original.session_number,
+        },
+        {
+            accessorKey: 'section_number',
+            header: 'Subtest',
+            cell: ({ row }) => row.original.section_number || '-',
         },
         {
             accessorKey: 'question_number',
@@ -145,7 +193,9 @@ export default function QuestionsIndex({ questions }: Props) {
                                             )
                                         ) {
                                             router.delete(
-                                                `/psychotest-questions/${question.id}`,
+                                                psychotestQuestions.destroy(
+                                                    question.id,
+                                                ).url,
                                                 {
                                                     onSuccess: () =>
                                                         toast.success(
@@ -194,7 +244,7 @@ export default function QuestionsIndex({ questions }: Props) {
                                 Psychotest Questions
                             </CardTitle>
                             <p className="text-sm text-muted-foreground">
-                                Manage questions for Papicostic, CFIT, and DISC.
+                                Manage questions and subtest durations.
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -215,12 +265,219 @@ export default function QuestionsIndex({ questions }: Props) {
                                     className="w-40 pl-9"
                                 />
                             </div>
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsSectionsOpen(true)}
+                            >
+                                <Clock className="mr-2 h-4 w-4" />
+                                Subtest Durations
+                            </Button>
                             <Button onClick={() => setIsCreateOpen(true)}>
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add Question
                             </Button>
                         </div>
                     </CardHeader>
+
+                    {/* Subtest Durations Dialog */}
+                    <Dialog
+                        open={isSectionsOpen}
+                        onOpenChange={setIsSectionsOpen}
+                    >
+                        <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                                <DialogTitle>Subtest Durations</DialogTitle>
+                                <DialogDescription>
+                                    Set the time limit (in seconds) for each
+                                    subtest.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-6">
+                                <form
+                                    onSubmit={handleSectionSubmit}
+                                    className="grid grid-cols-4 items-end gap-3 rounded-xl border border-border bg-muted/30 p-4"
+                                >
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-bold uppercase">
+                                            Test Type
+                                        </Label>
+                                        <Select
+                                            value={sectionData.test_type}
+                                            onValueChange={(val) =>
+                                                setSectionData('test_type', val)
+                                            }
+                                        >
+                                            <SelectTrigger className="mb-0 h-9 w-full">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="disc">
+                                                    DISC
+                                                </SelectItem>
+                                                <SelectItem value="papicostic">
+                                                    PAPI
+                                                </SelectItem>
+                                                <SelectItem value="cfit">
+                                                    CFIT
+                                                </SelectItem>
+                                                <SelectItem value="skill_test">
+                                                    Skill
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-bold uppercase">
+                                            Subtest
+                                        </Label>
+                                        <Input
+                                            type="number"
+                                            value={sectionData.section_number}
+                                            onChange={(e) =>
+                                                setSectionData(
+                                                    'section_number',
+                                                    parseInt(e.target.value),
+                                                )
+                                            }
+                                            className="h-9"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 text-blue-600">
+                                        <Label className="text-[10px] font-bold uppercase">
+                                            Seconds
+                                        </Label>
+                                        <Input
+                                            type="number"
+                                            value={sectionData.duration}
+                                            onChange={(e) =>
+                                                setSectionData(
+                                                    'duration',
+                                                    parseInt(e.target.value),
+                                                )
+                                            }
+                                            className="h-9 border-blue-200"
+                                        />
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        size="sm"
+                                        disabled={processingSection}
+                                    >
+                                        Set Duration
+                                    </Button>
+                                </form>
+
+                                <div className="max-h-[300px] overflow-y-auto rounded-xl border border-border">
+                                    <table className="w-full text-sm">
+                                        <thead className="sticky top-0 bg-muted text-muted-foreground uppercase">
+                                            <tr>
+                                                <th className="px-4 py-2 text-left text-[10px] font-bold">
+                                                    Type
+                                                </th>
+                                                <th className="px-4 py-2 text-left text-[10px] font-bold">
+                                                    Subtest
+                                                </th>
+                                                <th className="px-4 py-2 text-left text-[10px] font-bold">
+                                                    Duration
+                                                </th>
+                                                <th className="px-4 py-2"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border">
+                                            {sections.length > 0 ? (
+                                                sections.map((section) => (
+                                                    <tr
+                                                        key={section.id}
+                                                        className="hover:bg-muted/50"
+                                                    >
+                                                        <td className="px-4 py-2 font-medium">
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="text-[10px] uppercase"
+                                                            >
+                                                                {
+                                                                    section.test_type
+                                                                }
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="px-4 py-2">
+                                                            Subtest{' '}
+                                                            {
+                                                                section.section_number
+                                                            }
+                                                        </td>
+                                                        <td className="px-4 py-2 font-bold text-blue-600">
+                                                            {section.duration}s
+                                                        </td>
+                                                        <td className="px-4 py-2 text-right">
+                                                            <div className="flex justify-end gap-1">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-7 w-7"
+                                                                    onClick={() => {
+                                                                        setSectionData(
+                                                                            {
+                                                                                test_type:
+                                                                                    section.test_type,
+                                                                                session_number:
+                                                                                    section.session_number,
+                                                                                section_number:
+                                                                                    section.section_number,
+                                                                                duration:
+                                                                                    section.duration,
+                                                                                name:
+                                                                                    section.name ||
+                                                                                    '',
+                                                                            },
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <Edit className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-7 w-7 text-destructive"
+                                                                    onClick={() => {
+                                                                        if (
+                                                                            confirm(
+                                                                                'Delete this section duration?',
+                                                                            )
+                                                                        ) {
+                                                                            router.delete(
+                                                                                psychotestSections.destroy(
+                                                                                    section.id,
+                                                                                )
+                                                                                    .url,
+                                                                            );
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <Trash className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td
+                                                        colSpan={4}
+                                                        className="py-8 text-center text-muted-foreground"
+                                                    >
+                                                        No subtest durations set
+                                                        yet.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
 
                     {/* Create Dialog */}
                     <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -235,6 +492,7 @@ export default function QuestionsIndex({ questions }: Props) {
                             <ScrollArea className="max-h-[calc(90vh-120px)] p-6">
                                 <QuestionForm
                                     mode="create"
+                                    sections={sections}
                                     onSuccess={() => {
                                         setIsCreateOpen(false);
                                         toast.success(
@@ -262,6 +520,7 @@ export default function QuestionsIndex({ questions }: Props) {
                                     <QuestionForm
                                         mode="edit"
                                         question={editingQuestion}
+                                        sections={sections}
                                         onSuccess={() => {
                                             setIsEditOpen(false);
                                             setEditingQuestion(null);

@@ -11,6 +11,7 @@ import {
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { Editor } from './blocks/editor-md/editor';
+import InputError from './input-error';
 import { Switch } from './ui/switch';
 
 interface LessonFormProps {
@@ -33,6 +34,7 @@ export default function LessonForm({
         content_type: lesson?.content_type || 'video',
         video_url: lesson?.video_url || '',
         video_file: null as File | null,
+        pdf_file: null as File | null,
         content: lesson?.content || '',
         duration: lesson?.duration || 0,
         order: lesson?.order || '',
@@ -82,11 +84,7 @@ export default function LessonForm({
                         placeholder="e.g. Introduction to Routing"
                         required
                     />
-                    {errors.title && (
-                        <p className="text-sm text-destructive">
-                            {errors.title}
-                        </p>
-                    )}
+                    <InputError message={errors.title} />
                 </div>
                 <div className="col-span-3 grid grid-cols-6 gap-4">
                     <div className="col-span-1 space-y-2">
@@ -103,13 +101,10 @@ export default function LessonForm({
                             <SelectContent>
                                 <SelectItem value="video">Video</SelectItem>
                                 <SelectItem value="article">Article</SelectItem>
+                                <SelectItem value="pdf">PDF</SelectItem>
                             </SelectContent>
                         </Select>
-                        {errors.content_type && (
-                            <p className="text-sm text-destructive">
-                                {errors.content_type}
-                            </p>
-                        )}
+                        <InputError message={errors.content_type} />
                     </div>
                     {data.content_type === 'video' ? (
                         <>
@@ -158,11 +153,7 @@ export default function LessonForm({
                                         }
                                         placeholder="https://www.youtube.com/watch?v=..."
                                     />
-                                    {errors.video_url && (
-                                        <p className="text-sm text-destructive">
-                                            {errors.video_url}
-                                        </p>
-                                    )}
+                                    <InputError message={errors.video_url} />
                                 </div>
                             ) : (
                                 <div className="col-span-3 space-y-2">
@@ -187,14 +178,33 @@ export default function LessonForm({
                                             Current file: {lesson.video_path}
                                         </p>
                                     )}
-                                    {errors.video_file && (
-                                        <p className="text-sm text-destructive">
-                                            {errors.video_file}
-                                        </p>
-                                    )}
+                                    <InputError message={errors.video_file} />
                                 </div>
                             )}
                         </>
+                    ) : data.content_type === 'pdf' ? (
+                        <div className="col-span-5 space-y-2">
+                            <Label htmlFor="pdf_file">Upload PDF File</Label>
+                            <Input
+                                id="pdf_file"
+                                type="file"
+                                accept="application/pdf"
+                                onChange={(e) =>
+                                    setData(
+                                        'pdf_file',
+                                        e.target.files
+                                            ? e.target.files[0]
+                                            : null,
+                                    )
+                                }
+                            />
+                            {lesson?.pdf_path && !data.pdf_file && (
+                                <p className="text-xs text-muted-foreground">
+                                    Current file: {lesson.pdf_path}
+                                </p>
+                            )}
+                            <InputError message={errors.pdf_file} />
+                        </div>
                     ) : null}
                 </div>
             </div>
@@ -212,12 +222,10 @@ export default function LessonForm({
                     }
                 />
                 <input type="hidden" name="content" value={data.content} />
-                {errors.content && (
-                    <p className="text-sm text-destructive">{errors.content}</p>
-                )}
+                <InputError message={errors.content} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="duration">Duration (seconds)</Label>
                     <Input
@@ -251,7 +259,7 @@ export default function LessonForm({
                 {errors.order && (
                     <p className="text-sm text-destructive">{errors.order}</p>
                 )}
-            </div>
+            </div> */}
 
             <div className="flex flex-col gap-4 sm:flex-row">
                 <div className="flex items-center space-x-2">

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Services\DiscScoringService;
+use App\Http\Services\PapiCosticScoringService;
 use App\Models\PsychotestLink;
 use App\Models\PsychotestQuestion;
+use App\Models\PsychotestSection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -40,7 +42,7 @@ class PsychotestController extends Controller
             'included_tests.*' => 'required|string',
         ]);
 
-        $link = PsychotestLink::create([
+        PsychotestLink::create([
             'uuid' => (string) Str::uuid(),
             'applicant_name' => $request->applicant_name,
             'applicant_email' => $request->applicant_email,
@@ -157,9 +159,14 @@ class PsychotestController extends Controller
                 ->route('psychotest.take-test', $uuid)
                 ->with('error', 'No questions found for this section.');
         }
-            
-        // Get section duration from the specific section question
-        $sectionDuration = $questions->where('section_number', $currentSection)->first()->section_duration ?? 600;
+
+        // Get section duration from the centralized sections table
+        $firstQuestion = $questions->where('section_number', $currentSection)->first();
+        $testType = $firstQuestion->test_type ?? null;
+
+        $sectionDuration = PsychotestSection::where('test_type', $testType)
+            ->where('section_number', $currentSection)
+            ->value('duration') ?? ($firstQuestion->section_duration ?? 600);
 
         // Server-side Timer Persistence per section
         $results = $link->results ?? [];
@@ -343,19 +350,39 @@ class PsychotestController extends Controller
             $discAnalysis = $scorer->score($formattedAnswers);
         }
 
+        // PAPI-Costic scoring
+        $papiAnalysis = null;
+        $papiAnswers  = data_get($link->results, 'session_1.answers', []);
+        if (!empty($papiAnswers)) {
+            $papiQuestions = $questions->get(1);
+            $formattedPapiAnswers = [];
+            foreach ($papiAnswers as $qId => $ans) {
+                $q = $papiQuestions ? $papiQuestions->firstWhere('id', (int)$qId) : null;
+                if ($q) {
+                    $formattedPapiAnswers[] = [
+                        'question_number'   => $q->question_number,
+                        'selected_role_id'  => (int) ($ans['selected_role_id'] ?? $ans ?? 0),
+                    ];
+                }
+            }
+            $papiScorer   = new PapiCosticScoringService();
+            $papiAnalysis = $papiScorer->score($formattedPapiAnswers);
+        }
+
         return Inertia::render('psychotest/Report', [
             'link' => array_merge($link->toArray(), [
                 'duration' => $link->duration,
                 'included_tests_expanded' => $link->included_tests
             ]),
-            'questions'    => $questions,
-            'disc_analysis' => $discAnalysis,
+            'questions'      => $questions,
+            'disc_analysis'  => $discAnalysis,
+            'papi_analysis'  => $papiAnalysis,
         ]);
     }
 
     public function storeApi(Request $request)
     {
-        $client = $request->user(); // system client
+        $request->user(); // system client
 
         $data = $request->validate([
             'name' => 'required|string',
@@ -422,12 +449,32 @@ class PsychotestController extends Controller
             $discAnalysis = $scorer->score($formattedAnswers);
         }
 
+        // PAPI-Costic scoring
+        $papiAnalysis = null;
+        $papiAnswers  = data_get($link->results, 'session_1.answers', []);
+        if (!empty($papiAnswers)) {
+            $papiQuestions = $questions->get(1);
+            $formattedPapiAnswers = [];
+            foreach ($papiAnswers as $qId => $ans) {
+                $q = $papiQuestions ? $papiQuestions->firstWhere('id', (int)$qId) : null;
+                if ($q) {
+                    $formattedPapiAnswers[] = [
+                        'question_number'   => $q->question_number,
+                        'selected_role_id'  => (int) ($ans['selected_role_id'] ?? $ans ?? 0),
+                    ];
+                }
+            }
+            $papiScorer   = new PapiCosticScoringService();
+            $papiAnalysis = $papiScorer->score($formattedPapiAnswers);
+        }
+
         return Inertia::render('psychotest/ReportView', [
             'link' => array_merge($link->toArray(), [
                 'duration' => $link->duration,
             ]),
-            'questions'     => $questions,
-            'disc_analysis' => $discAnalysis,
+            'questions'      => $questions,
+            'disc_analysis'  => $discAnalysis,
+            'papi_analysis'  => $papiAnalysis,
         ]);
     }
 

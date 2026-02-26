@@ -2,6 +2,10 @@ import {
     DiscResultDisplay,
     type DiscAnalysis,
 } from '@/components/disc-result-display';
+import {
+    PapiCosticResultDisplay,
+    type PapiAnalysis,
+} from '@/components/papi-costic-result-display';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -57,6 +61,7 @@ interface Props {
     link: PsychotestLink;
     questions: Record<string, Question[]>;
     disc_analysis?: DiscAnalysis | null;
+    papi_analysis?: PapiAnalysis | null;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -320,6 +325,7 @@ export default function PsychotestReport({
     link,
     questions,
     disc_analysis,
+    papi_analysis,
 }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Psychotest Management', href: '/psychotest-link' },
@@ -611,6 +617,22 @@ export default function PsychotestReport({
                                                             <DiscResultDisplay
                                                                 analysis={
                                                                     disc_analysis
+                                                                }
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                {/* PAPI-Costic Analysis — show scoring below Q&A */}
+                                                {sNum === 1 &&
+                                                    papi_analysis && (
+                                                        <div className="mt-6">
+                                                            <p className="mb-3 text-sm font-bold tracking-widest text-muted-foreground uppercase">
+                                                                Hasil Penilaian
+                                                                PAPI-Kostic
+                                                            </p>
+                                                            <PapiCosticResultDisplay
+                                                                analysis={
+                                                                    papi_analysis
                                                                 }
                                                             />
                                                         </div>

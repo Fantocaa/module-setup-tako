@@ -1,8 +1,8 @@
 # Define container names
-APP_CONTAINER=app
-NGINX_CONTAINER=nginx
-POSTGRES_CONTAINER=postgres
-REDIS_CONTAINER=redis
+APP_CONTAINER=php_laravel
+NGINX_CONTAINER=tako-nginx
+POSTGRES_CONTAINER=postgres-master
+REDIS_CONTAINER=tako-redis
 
 # Define dev override file
 DEV_COMPOSE=docker-compose.override.yml

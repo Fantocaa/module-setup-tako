@@ -5,6 +5,8 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -64,8 +66,16 @@ class User extends Authenticatable
     /**
      * Get the lesson progress for the user.
      */
-    public function lessonProgress(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function lessonProgress(): HasMany
     {
         return $this->hasMany(LessonProgress::class);
+    }
+
+    /**
+     * Get the courses that the user has marked to watch later.
+     */
+    public function watchLaterCourses(): BelongsToMany
+    {
+        return $this->belongsToMany(Course::class, 'watch_later')->withTimestamps();
     }
 }

@@ -50,12 +50,19 @@ interface Position {
     users_count: number;
 }
 
+interface Tag {
+    id: number;
+    name: string;
+    courses: { id: number }[];
+}
+
 interface Props {
     positions: Position[];
     courses: Course[];
+    tags: Tag[];
 }
 
-export default function PositionIndex({ positions, courses }: Props) {
+export default function PositionIndex({ positions, courses, tags }: Props) {
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingPosition, setEditingPosition] = useState<Position | null>(
         null,
@@ -84,11 +91,42 @@ export default function PositionIndex({ positions, courses }: Props) {
         );
     };
 
+    const toggleTag = (tag: Tag) => {
+        const tagCourseIds = tag.courses.map((c) => c.id);
+        const allTagCoursesSelected = tagCourseIds.every((id) =>
+            data.courses.includes(id),
+        );
+
+        if (allTagCoursesSelected) {
+            // Remove all courses belonging to this tag
+            setData(
+                'courses',
+                data.courses.filter((id) => !tagCourseIds.includes(id)),
+            );
+        } else {
+            // Add all courses belonging to this tag (avoid duplicates)
+            const newCourses = [...data.courses];
+            tagCourseIds.forEach((id) => {
+                if (!newCourses.includes(id)) {
+                    newCourses.push(id);
+                }
+            });
+            setData('courses', newCourses);
+        }
+    };
+
     const toggleAllCourses = () => {
         const allChecked = courses.every((course) =>
             data.courses.includes(course.id),
         );
         setData('courses', allChecked ? [] : courses.map((c) => c.id));
+    };
+
+    const isTagSelected = (tag: Tag) => {
+        return (
+            tag.courses.length > 0 &&
+            tag.courses.every((c) => data.courses.includes(c.id))
+        );
     };
 
     const openCreateSheet = () => {
@@ -383,6 +421,31 @@ export default function PositionIndex({ positions, courses }: Props) {
                                         </Label>
                                     </div>
                                 </div>
+
+                                {/* Tag Selection */}
+                                <div className="space-y-2">
+                                    <Label className="text-xs tracking-wider text-muted-foreground uppercase">
+                                        Bulk Select by Tag
+                                    </Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {tags.map((tag) => (
+                                            <Badge
+                                                key={tag.id}
+                                                variant={
+                                                    isTagSelected(tag)
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                className="cursor-pointer px-3 py-1 text-xs transition-all hover:opacity-80"
+                                                onClick={() => toggleTag(tag)}
+                                            >
+                                                {tag.name}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <Separator className="my-4" />
 
                                 <div className="rounded-md border bg-muted/20 p-4">
                                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

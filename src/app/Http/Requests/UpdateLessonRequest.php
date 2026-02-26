@@ -23,9 +23,10 @@ class UpdateLessonRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'max:255'],
-            'content_type' => ['required', 'in:video,article'],
+            'content_type' => ['required', 'in:video,article,pdf'],
             'video_url' => ['nullable', 'string', 'url', 'max:500'],
             'video_file' => ['nullable', 'file', 'mimes:mp4,webm', 'max:102400'],
+            'pdf_file' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
             'content' => ['required_if:content_type,article', 'nullable', 'string'],
             'duration' => ['nullable', 'integer', 'min:0'],
             'order' => ['nullable', 'integer', 'min:0'],

@@ -1,5 +1,5 @@
+import AppearanceToggleDropdown from '@/components/appearance-dropdown';
 import { Avatar } from '@/components/ui/intent-avatar';
-import { Button } from '@/components/ui/intent-button';
 import {
     Navbar,
     NavbarGap,
@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/navbar';
 import { Separator } from '@/components/ui/separator';
 import { UserMenu } from '@/components/user-menu';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { Link } from '@inertiajs/react';
 
 export default function AppNavbar(props: NavbarProps) {
@@ -47,24 +46,19 @@ export default function AppNavbar(props: NavbarProps) {
                 </NavbarSection>
                 <NavbarSpacer />
                 <NavbarSection className="max-md:hidden">
-                    <Button
-                        intent="plain"
-                        size="sq-sm"
-                        aria-label="Search for courses"
-                    >
-                        <MagnifyingGlassIcon />
-                    </Button>
                     <Separator
                         orientation="vertical"
-                        className="mr-3 ml-1 h-5"
+                        className="mr-3 ml-1 h-5 opacity-50"
                     />
+                    <AppearanceToggleDropdown className="mr-2" />
                     <UserMenu />
                 </NavbarSection>
             </Navbar>
             <NavbarMobile>
                 <NavbarTrigger />
                 <NavbarSpacer />
-                <NavbarSeparator className="mr-2.5" />
+                <AppearanceToggleDropdown className="mr-2" />
+                <NavbarSeparator className="mr-2.5 opacity-50" />
                 <UserMenu />
             </NavbarMobile>
         </NavbarProvider>

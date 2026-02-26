@@ -19,18 +19,13 @@ use Inertia\Inertia;
 // use Laravel\Fortify\Features;
 
 Route::get('/', function () {
-    if (auth()->check()) {
-        return auth()->user()->hasRole('user') 
-            ? redirect()->route('courses.index') 
-            : redirect()->route('dashboard');
-    }
     return redirect()->route('login');
 })->name('home');
 
 Route::middleware(['auth', 'verified', 'menu.permission'])->group(function () {
     Route::get('dashboard', function () {
         if (auth()->user()->hasRole('user')) {
-             return redirect()->route('courses.index');
+            return redirect()->route('courses.index');
         }
         return Inertia::render('dashboard');
     })->name('dashboard');
@@ -62,6 +57,8 @@ Route::middleware(['auth', 'verified', 'menu.permission'])->group(function () {
     
     // Psychotest Questions CRUD
     Route::resource('psychotest-questions', PsychotestQuestionController::class);
+    Route::post('/psychotest-sections', [PsychotestQuestionController::class, 'storeSection'])->name('psychotest-sections.store');
+    Route::delete('/psychotest-sections/{section}', [PsychotestQuestionController::class, 'destroySection'])->name('psychotest-sections.destroy');
 });
 
 Route::get('/psychotest-link/{uuid}/pdf', [PsychotestController::class, 'downloadPdf'])->name('psychotest.pdf');
