@@ -1,0 +1,10 @@
+.git
+.gitattributes
+docker-compose.yaml
+README.md
+vendor
+node_modules
+storage/*.zip
+bootstrap/cache/*.php
+.env
+public/storage
