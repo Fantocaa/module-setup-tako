@@ -61,8 +61,9 @@ RUN pecl install mongodb && docker-php-ext-enable mongodb
 #####################################
 # Imagick:
 #####################################
-RUN pecl install imagick && \
-    docker-php-ext-enable imagick
+RUN curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions && \
+    chmod +x /usr/local/bin/install-php-extensions && \
+    install-php-extensions imagick
 
 #####################################
 # GD:
